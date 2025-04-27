@@ -14,7 +14,7 @@ choice = gets.chomp
 
 case choice
 when '1'
-  # TODO
+  Wallet.generate
 when '2'
   # TODO
 when '3'
