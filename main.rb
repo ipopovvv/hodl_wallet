@@ -3,6 +3,7 @@ require_relative 'lib/wallet'
 require_relative 'lib/bitcoin_client'
 require_relative 'lib/utxo_fetcher'
 require_relative 'lib/transaction_service'
+require_relative 'lib/balance_checker'
 
 puts "Bitcoin Wallet"
 puts "1. Сгенерировать новый кошелек"
@@ -16,7 +17,7 @@ case choice
 when '1'
   Wallet.generate
 when '2'
-  # TODO
+  BalanceChecker.check_balance
 when '3'
   # TODO
 else
