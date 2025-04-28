@@ -1,9 +1,7 @@
 require 'dotenv/load'
 require_relative 'lib/wallet'
-require_relative 'lib/bitcoin_client'
-require_relative 'lib/utxo_fetcher'
-require_relative 'lib/transaction_service'
 require_relative 'lib/balance_checker'
+require_relative 'lib/transaction_sender'
 
 puts "Bitcoin Wallet"
 puts "1. Сгенерировать новый кошелек"
@@ -19,7 +17,7 @@ when '1'
 when '2'
   BalanceChecker.check_balance
 when '3'
-  # TODO
+  TransactionSender.send_btc
 else
   puts "Неверный выбор"
 end
