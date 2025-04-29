@@ -1,4 +1,8 @@
+require_relative 'script_logger'
+
 module TransactionSender
+  extend ScriptLogger
+
   MINIMUM_FEE = 2
   DUST_THRESHOLD = 330
 
@@ -12,26 +16,26 @@ module TransactionSender
     key = Wallet.load
 
     sender_address, output_key_bytes = derive_p2tr_details(key)
-    log("Sender P2TR Address: #{sender_address}")
+    log_info("Sender P2TR Address: #{sender_address}")
 
     spendable_utxos = fetch_and_filter_utxos(sender_address, output_key_bytes)
     confirmed_utxos = spendable_utxos.select { |utxo| utxo.dig("status", "confirmed") }
 
     if confirmed_utxos.empty?
-      log("No confirmed spendable UTXOs found for address #{sender_address}.")
+      log_info("No confirmed spendable UTXOs found for address #{sender_address}.")
       return
     end
-    log("Using #{confirmed_utxos.size} confirmed and spendable UTXO(s).")
+    log_info("Using #{confirmed_utxos.size} confirmed and spendable UTXO(s).")
 
     total_sats = total_balance(confirmed_utxos)
-    log("Total spendable balance: #{total_sats} sats")
+    log_info("Total spendable balance: #{total_sats} sats")
 
     fee_rate = fetch_fee_rate
     final_fee = calculate_final_fee(confirmed_utxos, sender_address, recipient_address, amount_sats, fee_rate)
-    log("Estimated final fee: #{final_fee} sats")
+    log_info("Estimated final fee: #{final_fee} sats")
 
     unless sufficient_funds?(total_sats, amount_sats, final_fee)
-      log("Insufficient funds. Required: #{amount_sats} + Fee: #{final_fee}. Available: #{total_sats}")
+      log_info("Insufficient funds. Required: #{amount_sats} + Fee: #{final_fee}. Available: #{total_sats}")
       return
     end
 
@@ -40,11 +44,11 @@ module TransactionSender
     broadcast(signed_tx)
 
   rescue Bitcoin::Errors => e
-    log("Error: Invalid Bitcoin address format - #{e.message}")
+    log_error("Error: Invalid Bitcoin address format - #{e.message}")
   rescue TransactionSenderError, Faraday::Error, JSON::ParserError => e
-    log("Error: #{e.message}")
+    log_error("Error: #{e.message}")
   rescue StandardError => e
-    log("Unexpected Error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
+    log_error("Unexpected Error: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
   end
 
   def self.derive_p2tr_details(key)
@@ -83,10 +87,9 @@ module TransactionSender
           end
         end
       rescue Faraday::Error, JSON::ParserError => e
-        log(" -> Warning: Error processing TX #{txid}: #{e.message}. Skipping.")
+        log_error(" -> Warning: Error processing TX #{txid}: #{e.message}. Skipping.")
       end
     end
-    # log("Found #{spendable_utxos.size} UTXO(s) spendable with the loaded key.") # Reduced logging
     spendable_utxos
   end
 
@@ -176,16 +179,16 @@ module TransactionSender
   def self.broadcast(tx)
     tx_hex = tx.to_hex
     url = "#{ENV['MEMPOOL_API_URL']}/tx"
-    log("Broadcasting to: #{url}")
+    log_info("Broadcasting to: #{url}")
     conn = Faraday.new { |f| f.adapter Faraday.default_adapter }
     response = conn.post(url) do |req|
       req.headers['Content-Type'] = 'text/plain'
       req.body = tx_hex
     end
 
-    log("Broadcast Response Status: #{response.status}")
+    log_info("Broadcast Response Status: #{response.status}")
 
-    log("Transaction broadcast successful! TXID: #{response.body}")
+    log_info("Transaction broadcast successful! TXID: #{response.body}")
   rescue Faraday::Error => e
     error_details = ""
     begin
@@ -218,10 +221,6 @@ module TransactionSender
     (btc * 100_000_000).to_i
   end
 
-  def self.log(message)
-    puts(message)
-  end
-
   private_class_method :derive_p2tr_details,
                        :fetch_and_filter_utxos,
                        :fetch_utxos,
@@ -236,7 +235,6 @@ module TransactionSender
                        :sufficient_funds?,
                        :ask_recipient_address,
                        :ask_amount_btc,
-                       :btc_to_sats,
-                       :log
+                       :btc_to_sats
 
 end

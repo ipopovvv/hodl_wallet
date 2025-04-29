@@ -1,4 +1,8 @@
+require_relative 'script_logger'
+
 module Wallet
+  extend ScriptLogger
+
   KEYS_DIR='keys'
 
   def self.generate
@@ -16,7 +20,7 @@ module Wallet
 
     address
   rescue StandardError => e
-    Wallet.log "Something went wrong while generate the Wallet: #{e.message}"
+    Wallet.log_error "Something went wrong while generate the Wallet: #{e.message}"
     return
   end
 
@@ -38,10 +42,10 @@ module Wallet
   end
 
   def self.log_generation_result(address, key_wif)
-    log("Wallet generated")
-    log("Address: #{address}")
-    log("Private Key (WIF): #{key_wif}")
-    log("Store this private key securely. It will not be saved automatically.")
+    log_info("Wallet generated")
+    log_info("Address: #{address}")
+    log_info("Private Key (WIF): #{key_wif}")
+    log_info("Store this private key securely. It will not be saved automatically.")
   end
 
   def self.load
@@ -49,15 +53,11 @@ module Wallet
 
     wif = ENV['PRIVATE_KEY_WIF']
     unless wif && !wif.strip.empty?
-      log "Environment variable PRIVATE_KEY_WIF is missing. Please check set it in your .env file MANUALLY."
+      log_info "Environment variable PRIVATE_KEY_WIF is missing. Please check set it in your .env file MANUALLY."
       return
     end
 
     Loader.new(wif).key
-  end
-
-  def self.log(message)
-    puts message
   end
 
   class Loader
@@ -66,7 +66,7 @@ module Wallet
     def initialize(wif)
       @key = Bitcoin::Key.from_wif(wif)
     rescue StandardError => e
-      Wallet.log "Invalid WIF format: #{e.message}"
+      Wallet.log_error "Invalid WIF format: #{e.message}"
       return
     end
   end

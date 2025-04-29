@@ -1,4 +1,5 @@
 require_relative 'wallet'
+require_relative 'script_logger'
 
 module BalanceChecker
 
@@ -12,6 +13,8 @@ module BalanceChecker
   end
 
   class Checker
+    include ScriptLogger
+
     def initialize(address)
       @address = address
     end
@@ -20,9 +23,9 @@ module BalanceChecker
       utxos = fetch_utxos
 
       if utxos.empty?
-        log("Balance: 0 sBTC")
+        log_info("Balance: 0 sBTC")
       else
-        log("Balance: #{calculate_balance(utxos)} sBTC")
+        log_info("Balance: #{calculate_balance(utxos)} sBTC")
       end
     end
 
@@ -34,21 +37,17 @@ module BalanceChecker
       if response.success?
         JSON.parse(response.body)
       else
-        log("Error fetching UTXOs: #{response.status} #{response.body}")
+        log_info("Error fetching UTXOs: #{response.status} #{response.body}")
         []
       end
     rescue StandardError => e
-      log("Error fetching UTXOs: #{e.message}")
+      log_error("Error fetching UTXOs: #{e.message}")
       []
     end
 
     def calculate_balance(utxos)
       sats = utxos.sum { |utxo| utxo["value"] }
       (sats.to_f / 100_000_000).round(8)
-    end
-
-    def log(message)
-      puts message
     end
   end
 end

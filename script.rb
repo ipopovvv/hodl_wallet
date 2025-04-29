@@ -5,8 +5,11 @@ require 'bitcoin'
 require_relative 'lib/wallet'
 require_relative 'lib/balance_checker'
 require_relative 'lib/transaction_sender'
+require_relative 'lib/script_logger'
 
 class Script
+  include ScriptLogger
+
   def self.call
     new.run
   end
@@ -25,26 +28,22 @@ class Script
       when '4'
         break
       else
-        log("Invalid choice. Please try again.")
+        log_info("Invalid choice. Please try again.")
       end
     rescue StandardError => e
-      log("Something went wrong. Trace: #{e.message}")
+      log_error("Something went wrong. Trace: #{e.message}")
     end
   end
 
   private
 
   def print_menu
-    log("\nBitcoin Wallet")
-    log("1. Generate new wallet")
-    log("2. Show balance")
-    log("3. Send BTC")
-    log("4. Exit")
+    puts "\nBitcoin Wallet"
+    puts "1. Generate new wallet"
+    puts "2. Show balance"
+    puts "3. Send BTC"
+    puts "4. Exit"
     print "Choose an option: "
-  end
-
-  def log(message)
-    puts message
   end
 end
 
