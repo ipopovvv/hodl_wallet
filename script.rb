@@ -17,6 +17,7 @@ class Script
       case gets.chomp
       when '1'
         Wallet.generate
+        return
       when '2'
         BalanceChecker.check_balance
       when '3'
