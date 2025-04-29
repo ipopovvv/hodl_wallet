@@ -1,6 +1,3 @@
-require 'faraday'
-require 'json'
-require 'bitcoin'
 require_relative 'wallet'
 
 module TransactionSender

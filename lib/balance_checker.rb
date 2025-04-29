@@ -1,26 +1,54 @@
-require 'net/http'
-require 'json'
 require_relative 'wallet'
 
 module BalanceChecker
-  MEMPOOL_API_URL = 'https://mempool.space/signet/api'
 
   def self.check_balance
-    key = Wallet.load
-    address = key.to_p2wpkh
+    new.balance
+  end
 
-    url = URI("#{MEMPOOL_API_URL}/address/#{address}/utxo")
-    response = Net::HTTP.get(url)
-    utxos = JSON.parse(response)
+  def self.new
+    address = Wallet.load.to_p2wpkh
+    Checker.new(address)
+  end
 
-    if utxos.empty?
-      puts "Balance: 0 BTC"
-      return
+  class Checker
+    def initialize(address)
+      @address = address
     end
 
-    balance_sats = utxos.sum { |utxo| utxo["value"] }
-    balance_btc = balance_sats.to_f / 100_000_000
+    def balance
+      utxos = fetch_utxos
 
-    puts "Balance: #{balance_btc} BTC"
+      if utxos.empty?
+        log("Balance: 0 sBTC")
+      else
+        log("Balance: #{calculate_balance(utxos)} sBTC")
+      end
+    end
+
+    private
+
+    def fetch_utxos
+      response = Faraday.get("#{ENV['MEMPOOL_API_URL']}/address/#{@address}/utxo")
+
+      if response.success?
+        JSON.parse(response.body)
+      else
+        log("Error fetching UTXOs: #{response.status} #{response.body}")
+        []
+      end
+    rescue StandardError => e
+      log("Error fetching UTXOs: #{e.message}")
+      []
+    end
+
+    def calculate_balance(utxos)
+      sats = utxos.sum { |utxo| utxo["value"] }
+      (sats.to_f / 100_000_000).round(8)
+    end
+
+    def log(message)
+      puts message
+    end
   end
 end

@@ -1,20 +1,14 @@
-require 'bitcoin'
-
 module Wallet
-  KEYS_DIR = 'keys'
-  PRIVATE_KEY_FILE = "#{KEYS_DIR}/private_key"
-
   def self.generate
     Bitcoin.chain_params = :signet
 
     key = Bitcoin::Key.generate
-    Dir.mkdir(KEYS_DIR) unless Dir.exist?(KEYS_DIR)
-
-    File.write(PRIVATE_KEY_FILE, key.to_wif)
-
     address = key.to_p2wpkh
-    puts "✅ Wallet generated!"
-    puts "Address: #{address}"
+
+    log("Wallet generated")
+    log("Address: #{address}")
+    log("Private Key (WIF): #{key.to_wif}")
+    log("Store this private key securely. It will not be saved automatically.")
 
     address
   end
@@ -22,12 +16,27 @@ module Wallet
   def self.load
     Bitcoin.chain_params = :signet
 
-    unless File.exist?(PRIVATE_KEY_FILE)
-      puts "Private key not found. Generate a wallet."
-      exit
+    wif = ENV['PRIVATE_KEY_WIF']
+    unless wif && !wif.strip.empty?
+      log "Environment variable PRIVATE_KEY_WIF is missing. Please set it in your .env file MANUALLY."
+      return
     end
 
-    wif = File.read(PRIVATE_KEY_FILE).strip
-    Bitcoin::Key.from_wif(wif)
+    Loader.new(wif).key
+  end
+
+  def self.log(message)
+    puts message
+  end
+
+  class Loader
+    attr_reader :key
+
+    def initialize(wif)
+      @key = Bitcoin::Key.from_wif(wif)
+    rescue StandardError => e
+      Wallet.log "Invalid WIF format: #{e.message}"
+      return
+    end
   end
 end
