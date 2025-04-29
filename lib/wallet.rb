@@ -10,7 +10,7 @@ module Wallet
     save_private_key_to_file(key_wif)
     update_env_file_with_key(key_wif)
 
-    address = key.to_p2wpkh
+    address = key.to_p2tr
 
     log_generation_result(address, key_wif)
 

@@ -7,7 +7,7 @@ module BalanceChecker
   end
 
   def self.new
-    address = Wallet.load.to_p2wpkh
+    address = Wallet.load.to_p2tr
     Checker.new(address)
   end
 
