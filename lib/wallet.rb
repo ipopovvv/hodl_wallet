@@ -21,7 +21,6 @@ module Wallet
     address
   rescue StandardError => e
     Wallet.log_error "Something went wrong while generate the Wallet: #{e.message}"
-    return
   end
 
   def self.save_private_key_to_file(key_wif)
@@ -67,7 +66,6 @@ module Wallet
       @key = Bitcoin::Key.from_wif(wif)
     rescue StandardError => e
       Wallet.log_error "Invalid WIF format: #{e.message}"
-      return
     end
   end
 end
