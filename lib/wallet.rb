@@ -13,8 +13,8 @@ module Wallet
     File.write(PRIVATE_KEY_FILE, key.to_wif)
 
     address = key.to_p2wpkh
-    puts "✅ Кошелек сгенерирован!"
-    puts "Адрес: #{address}"
+    puts "✅ Wallet generated!"
+    puts "Address: #{address}"
 
     address
   end
@@ -23,7 +23,7 @@ module Wallet
     Bitcoin.chain_params = :signet
 
     unless File.exist?(PRIVATE_KEY_FILE)
-      puts "Приватный ключ не найден. Сгенерируйте кошелек."
+      puts "Private key not found. Generate a wallet."
       exit
     end
 

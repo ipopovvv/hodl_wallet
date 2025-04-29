@@ -14,13 +14,13 @@ module BalanceChecker
     utxos = JSON.parse(response)
 
     if utxos.empty?
-      puts "Баланс: 0 BTC"
+      puts "Balance: 0 BTC"
       return
     end
 
     balance_sats = utxos.sum { |utxo| utxo["value"] }
     balance_btc = balance_sats.to_f / 100_000_000
 
-    puts "💰 Баланс: #{balance_btc} BTC"
+    puts "Balance: #{balance_btc} BTC"
   end
 end

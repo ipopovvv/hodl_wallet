@@ -8,43 +8,42 @@ module TransactionSender
   FEE_SATS = 1_000 # 0.00001 BTC
 
   def self.send_btc
-    print "Введите адрес получателя: "
+    print "Enter receiver address: "
     recipient_address = gets.strip
 
-    print "Введите сумму отправки в BTC: "
+    print "Enter sBTC amount: "
     amount_btc = gets.strip.to_f
     amount_sats = (amount_btc * 100_000_000).to_i
 
     key = Wallet.load
-    puts key.to_p2wpkh
     address = key.to_p2wpkh
 
-    # Получаем актуальные UTXO перед транзакцией
+    # All UTXOs
     utxos = fetch_utxos(address)
 
-    # Проверяем баланс
+    # Check balance
     total_sats = utxos.sum { |utxo| utxo["value"] }
     if total_sats < amount_sats + FEE_SATS
-      puts "Недостаточно средств (с учетом комиссии)"
+      puts "Insufficient funds (including commission)"
       return
     end
 
-    # Строим транзакцию
+    # Build transaction
     tx = Bitcoin::Tx.new
 
-    # Добавляем входы
+    # Add inputs
     utxos.each do |utxo|
       out_point = Bitcoin::OutPoint.new([utxo["txid"]].pack("H*").reverse.b, utxo["vout"])
       txin = Bitcoin::TxIn.new(out_point: out_point)
       tx.inputs << txin
     end
 
-    # Добавляем выход на получателя
+    # Add output to receiver
     recipient_script = Bitcoin::Script.parse_from_addr(recipient_address)
     txout = Bitcoin::TxOut.new(value: amount_sats, script_pubkey: recipient_script)
     tx.outputs << txout
 
-    # Добавляем сдачу
+    # Add change return
     change_sats = total_sats - amount_sats - FEE_SATS
     if change_sats > 0
       change_script = Bitcoin::Script.parse_from_addr(address)
@@ -52,14 +51,14 @@ module TransactionSender
       tx.outputs << change_txout
     end
 
-    # Подписываем входы
+    # Signing input
     utxos.each_with_index do |utxo, index|
       script_pubkey = Bitcoin::Script.parse_from_addr(address)
       sighash = tx.sighash_for_input(index,
                                      script_pubkey,
                                      opts: { amount: utxo["value"] },
                                      hash_type: Bitcoin::SIGHASH_TYPE[:all],
-                                     sig_version: :witness_v0 # для P2WPKH
+                                     sig_version: :witness_v0
       )
 
       signature = key.sign(sighash) + [Bitcoin::SIGHASH_TYPE[:all]].pack("C")
@@ -68,29 +67,29 @@ module TransactionSender
       tx.inputs[index].script_witness.stack << key.pubkey
     end
 
-    puts "Итоговый список входов:"
+    puts "Final inputs list:"
     tx.inputs.each_with_index do |input, index|
       puts "Input #{index + 1}: #{input.out_point.txid} - #{input.out_point.index}"
     end
 
-    # Бродкастим транзакцию
+    # Broadcast the transaction
     tx_hex = tx.to_hex
     broadcast(tx_hex)
 
-    puts "Транзакция отправлена!"
+    puts "Transaction broadcast sent!"
   end
 
   def self.fetch_utxos(address)
     response = Faraday.get("#{MEMPOOL_API_URL}/address/#{address}/utxo")
     utxos = JSON.parse(response.body)
-    puts "UTXOs: #{utxos}"  # Выводим список UTXO для проверки
+    puts "UTXOs: #{utxos}"
 
-    # Проверяем, что все UTXO подтверждены
+    # Check confirmed UTXOs
     utxos.each do |utxo|
       if utxo["status"]["confirmed"]
-        puts "UTXO #{utxo["txid"]} подтверждено на блоке #{utxo["status"]["block_height"]}"
+        puts "UTXO #{utxo["txid"]} confirmed with block #{utxo["status"]["block_height"]}"
       else
-        puts "UTXO #{utxo["txid"]} НЕ подтверждено"
+        puts "UTXO #{utxo["txid"]} does not confirmed"
       end
     end
 
@@ -99,6 +98,6 @@ module TransactionSender
 
   def self.broadcast(tx_hex)
     response = Faraday.post("#{MEMPOOL_API_URL}/tx", tx_hex)
-    puts "Ответ mempool: #{response.body}"
+    puts "Mempool response: #{response.body}"
   end
 end
