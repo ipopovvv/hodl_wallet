@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require_relative 'wallet'
 require_relative 'script_logger'
 
+# module BalanceChecker
 module BalanceChecker
-
   def self.check_balance
     new.balance
   end
@@ -12,6 +14,7 @@ module BalanceChecker
     Checker.new(address)
   end
 
+  # class Checker for checking balance
   class Checker
     include ScriptLogger
 
@@ -23,7 +26,7 @@ module BalanceChecker
       utxos = fetch_utxos
 
       if utxos.empty?
-        log_info("Balance: 0 sBTC")
+        log_info('Balance: 0 sBTC')
       else
         log_info("Balance: #{calculate_balance(utxos)} sBTC")
       end
@@ -46,7 +49,7 @@ module BalanceChecker
     end
 
     def calculate_balance(utxos)
-      sats = utxos.sum { |utxo| utxo["value"] }
+      sats = utxos.sum { |utxo| utxo['value'] }
       (sats.to_f / 100_000_000).round(8)
     end
   end

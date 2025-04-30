@@ -1,3 +1,6 @@
+# frozen_string_literal: true
+
+# Main Module for logging different types of logs
 module ScriptLogger
   LOGGER = Logger.new($stdout)
 

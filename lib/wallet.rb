@@ -1,9 +1,12 @@
+# frozen_string_literal: true
+
 require_relative 'script_logger'
 
+# Main module Wallet
 module Wallet
   extend ScriptLogger
 
-  KEYS_DIR='keys'
+  KEYS_DIR = 'keys'
 
   def self.generate
     Bitcoin.chain_params = :signet
@@ -41,10 +44,10 @@ module Wallet
   end
 
   def self.log_generation_result(address, key_wif)
-    log_info("Wallet generated")
+    log_info('Wallet generated')
     log_info("Address: #{address}")
     log_info("Private Key (WIF): #{key_wif}")
-    log_info("Store this private key securely. It will not be saved automatically.")
+    log_info('Store this private key securely. It will not be saved automatically.')
   end
 
   def self.load
@@ -52,13 +55,14 @@ module Wallet
 
     wif = ENV['PRIVATE_KEY_WIF']
     unless wif && !wif.strip.empty?
-      log_info "Environment variable PRIVATE_KEY_WIF is missing. Please check set it in your .env file MANUALLY."
+      log_info('Environment variable PRIVATE_KEY_WIF is missing. Please check set it in your .env file MANUALLY.')
       return
     end
 
     Loader.new(wif).key
   end
 
+  # class Loader for load key
   class Loader
     attr_reader :key
 
