@@ -46,6 +46,9 @@ To launch the interactive CLI:
 ruby script.rb
 ```
 
+### 5. Create a Wallet (Select Option 1)
+Once you've created your wallet, you can fully use the HODL Wallet. Congratulations!
+
 ---
 
 ## 🐳 Docker (optional)
