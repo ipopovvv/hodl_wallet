@@ -87,10 +87,10 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bitcoinrb
-  dotenv
-  faraday
-  rubocop
+  bitcoinrb (= 1.8.1)
+  dotenv (= 3.1.8)
+  faraday (= 2.13.1)
+  rubocop (= 1.75.4)
 
 BUNDLED WITH
    2.6.8
