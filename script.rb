@@ -19,6 +19,8 @@ class Script
   end
 
   # rubocop:disable Metrics/MethodLength
+  # Main loop for running the wallet operations menu
+  # allowing the user to generate a wallet, check balance, send BTC, or exit
   def run
     loop do
       print_menu

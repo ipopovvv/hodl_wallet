@@ -8,6 +8,7 @@ module Wallet
 
   KEYS_DIR = 'keys'
 
+  # Generates a new Bitcoin key, saves it, updates .env, and returns the Taproot address
   def self.generate
     Bitcoin.chain_params = :signet
 

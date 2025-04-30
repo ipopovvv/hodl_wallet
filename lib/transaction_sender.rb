@@ -13,6 +13,7 @@ module TransactionSender
   class TransactionSenderError < StandardError; end
 
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  # Sends BTC from local wallet to user-specified address with fee calculation and safety checks
   def self.send_btc
     Bitcoin.chain_params = :signet
 
@@ -56,6 +57,7 @@ module TransactionSender
   end
   # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
+  # Derives Taproot (P2TR) address and output key bytes from the given key
   def self.derive_p2tr_details(key)
     sender_address = key.to_p2tr
     output_key_hex = key.xonly_pubkey
@@ -67,6 +69,7 @@ module TransactionSender
     raise TransactionSenderError, "Method missing for P2TR key derivation (#{e.message}). Check bitcoinrb version."
   end
 
+  # Fetches UTXOs for address and filters only those matching the expected output key
   def self.fetch_and_filter_utxos(address, expected_output_key)
     utxos = fetch_utxos(address)
     return [] if utxos.empty?
@@ -80,6 +83,7 @@ module TransactionSender
     end
   end
 
+  # Fetches all UTXOs for the given address using mempool API
   def self.fetch_utxos(address)
     url = "#{ENV['MEMPOOL_API_URL']}/address/#{address}/utxo"
     response = Faraday.get(url)
@@ -90,6 +94,7 @@ module TransactionSender
     raise TransactionSenderError, "Error parsing UTXO JSON response: #{e.message}"
   end
 
+  # Gets the current fastest fee rate from mempool API, with fallback to minimum fee
   def self.fetch_fee_rate
     url = "#{ENV['MEMPOOL_API_URL']}/v1/fees/recommended"
     response = Faraday.get(url)
@@ -102,6 +107,7 @@ module TransactionSender
     raise TransactionSenderError, "Error parsing fee rate JSON response: #{e.message}"
   end
 
+  # Estimates final transaction fee with and without change output to get accurate size-based fee
   def self.calculate_final_fee(utxos, sender_addr, recip_addr, amount, fee_rate)
     tx_no_change = build_transaction(utxos, sender_addr, recip_addr, amount, 0, include_change: false)
     base_fee = calculate_vsize_fee(tx_no_change, fee_rate, utxos.size)
@@ -110,6 +116,7 @@ module TransactionSender
   end
 
   # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Naming/MethodParameterName
+  # Calculates transaction fee by estimating virtual size (vsize) and multiplying by fee rate
   def self.calculate_vsize_fee(tx, rate, num_inputs)
     return 0 if tx.in.empty? || tx.out.empty? || rate <= 0
 
@@ -125,6 +132,7 @@ module TransactionSender
   # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Naming/MethodParameterName
 
   # rubocop:disable Metrics/ParameterLists
+  # Builds raw Bitcoin transaction with optional change output
   def self.build_transaction(utxos, sender_addr, recip_addr, amount, fee, include_change: true)
     tx = Bitcoin::Tx.new
     tx.version = 2
@@ -145,6 +153,7 @@ module TransactionSender
   # rubocop:enable Naming/MethodParameterName
 
   # rubocop:disable Metrics, Naming
+  # Signs a Bitcoin transaction using provided UTXOs and key, ensuring output key match and valid data
   def self.sign_transaction(tx, spendable_utxos, key, expected_output_key)
     raise TransactionSenderError, 'Input/UTXO count mismatch.' unless tx.in.size == spendable_utxos.size
 
@@ -211,6 +220,7 @@ module TransactionSender
   # rubocop:enable Metrics, Naming
 
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+  # Checks if the output key in the UTXO matches the expected key by fetching the transaction details
   def self.valid_output_key?(conn, utxo, expected_key)
     txid, vout = utxo.values_at('txid', 'vout')
     response = conn.get("tx/#{txid}")

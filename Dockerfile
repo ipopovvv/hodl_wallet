@@ -1,4 +1,3 @@
-# Use an official Ruby image
 FROM ruby:3.2
 
 # Create app directory
