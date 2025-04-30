@@ -1,3 +1,4 @@
+
 # Hodl Wallet
 
 A simple Bitcoin CLI wallet built with Ruby.  
@@ -6,6 +7,11 @@ Supports key generation, balance checking, and transaction sending via the Bitco
 ---
 
 ## 🔧 Getting Started
+
+### Prerequisites
+
+- Ruby (Tested with Ruby 3.2.2)
+- Docker (Optional, if you plan to run the wallet via Docker)
 
 ### 1. Clone the repository
 
@@ -43,6 +49,8 @@ ruby script.rb
 ---
 
 ## 🐳 Docker (optional)
+
+If you prefer to run the wallet via Docker, follow these steps.
 
 ### Build the image:
 
