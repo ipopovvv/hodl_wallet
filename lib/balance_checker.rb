@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'wallet'
-require_relative 'script_logger'
-require_relative 'utxo_fetcher'
+require_relative '../utils/script_logger'
+require_relative '../utils/utxo_fetcher'
 
 # module BalanceChecker
 module BalanceChecker

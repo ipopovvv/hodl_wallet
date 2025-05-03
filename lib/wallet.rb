@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'script_logger'
+require_relative '../utils/script_logger'
 
 # Main module Wallet
 module Wallet
