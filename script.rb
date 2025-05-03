@@ -17,7 +17,7 @@ class Script
   include ScriptLogger
 
   def initialize
-    @client = Services::HttpClient.client
+    @client = Services::HttpClient.new.client
   end
 
   def self.call
@@ -32,10 +32,10 @@ class Script
       print_menu
       case gets.chomp
       when '1'
-        Wallet.generate
+        Wallet::Generator.new.call
         return
       when '2'
-        BalanceChecker::Checker.check_balance(@client)
+        BalanceChecker::Checker.new(@client).balance
       when '3'
         TransactionSender::Sender.new(@client).send_btc
       when '4'

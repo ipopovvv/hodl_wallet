@@ -9,13 +9,8 @@ module BalanceChecker
   class Checker
     include ScriptLogger
 
-    def self.check_balance(client)
-      address = Wallet.load.to_p2tr
-      new(address, client).balance
-    end
-
-    def initialize(address, client)
-      @address = address
+    def initialize(client)
+      @address = load_wallet
       @client = client
     end
 
@@ -30,6 +25,10 @@ module BalanceChecker
     end
 
     private
+
+    def load_wallet
+      Wallet::Loader.new.key.to_p2tr
+    end
 
     def fetch_utxos
       log_info("Fetching utxos for #{@address}...")

@@ -25,7 +25,7 @@ module TransactionSender
 
       recipient_address = ask_recipient_address
       amount_sats = btc_to_sats(ask_amount_btc)
-      key = Wallet.load
+      key = Wallet::Loader.new.key
 
       sender_address, output_key_bytes = derive_p2tr_details(key)
       log_info("Sender P2TR Address: #{sender_address}")
