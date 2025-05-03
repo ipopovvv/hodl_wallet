@@ -5,21 +5,26 @@ require_relative 'script_logger'
 
 # module BalanceChecker
 module BalanceChecker
-  def self.check_balance
-    new.balance
+  def initialize(client)
+    @client = client
   end
 
-  def self.new
+  def self.check_balance(client)
+    new(client).balance
+  end
+
+  def self.new(client)
     address = Wallet.load.to_p2tr
-    Checker.new(address)
+    Checker.new(address, client)
   end
 
   # class Checker for checking balance
   class Checker
     include ScriptLogger
 
-    def initialize(address)
+    def initialize(address, client)
       @address = address
+      @client = client
     end
 
     def balance
@@ -35,17 +40,8 @@ module BalanceChecker
     private
 
     def fetch_utxos
-      response = Faraday.get("#{ENV['MEMPOOL_API_URL']}/address/#{@address}/utxo")
-
-      if response.success?
-        JSON.parse(response.body)
-      else
-        log_info("Error fetching UTXOs: #{response.status} #{response.body}")
-        []
-      end
-    rescue StandardError => e
-      log_error("Error fetching UTXOs: #{e.message}")
-      []
+      log_info("Fetching utxos for #{@address}...}")
+      @client.get("/signet/api/address/#{@address}/utxo").body
     end
 
     def calculate_balance(utxos)

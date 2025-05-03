@@ -5,6 +5,8 @@ require 'faraday'
 require 'json'
 require 'bitcoin'
 require 'rubocop'
+require 'dry/configurable'
+require_relative 'services/http_client'
 require_relative 'lib/wallet'
 require_relative 'lib/balance_checker'
 require_relative 'lib/transaction_sender'
@@ -13,6 +15,10 @@ require_relative 'lib/script_logger'
 # Main class for Script
 class Script
   include ScriptLogger
+
+  def initialize
+    @client = Services::HttpClient.client
+  end
 
   def self.call
     new.run
@@ -29,7 +35,7 @@ class Script
         Wallet.generate
         return
       when '2'
-        BalanceChecker.check_balance
+        BalanceChecker.check_balance(@client)
       when '3'
         TransactionSender.send_btc
       when '4'
