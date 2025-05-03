@@ -2,12 +2,14 @@
 
 require_relative 'wallet'
 require_relative 'script_logger'
+require_relative 'utxo_fetcher'
 
 # module BalanceChecker
 module BalanceChecker
   # class Checker
   class Checker
     include ScriptLogger
+    include UtxoFetcher
 
     def initialize(client)
       @address = load_wallet
@@ -15,7 +17,7 @@ module BalanceChecker
     end
 
     def balance
-      utxos = fetch_utxos
+      utxos = fetch_utxos(@address, @client)
 
       if utxos.empty?
         log_info('Balance: 0 sBTC')
@@ -28,11 +30,6 @@ module BalanceChecker
 
     def load_wallet
       Wallet::Loader.new.key.to_p2tr
-    end
-
-    def fetch_utxos
-      log_info("Fetching utxos for #{@address}...")
-      @client.get("/signet/api/address/#{@address}/utxo").body
     end
 
     def calculate_balance(utxos)

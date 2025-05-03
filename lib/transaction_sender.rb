@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'script_logger'
+require_relative 'utxo_fetcher'
 
 # Main Module for prepare and send BTC Transaction
 module TransactionSender
@@ -13,6 +14,7 @@ module TransactionSender
   # Main class for prepare and send BTC Transaction
   class Sender
     include ScriptLogger
+    include UtxoFetcher
 
     def initialize(client)
       @client = client
@@ -73,17 +75,12 @@ module TransactionSender
 
     # Fetches UTXOs for address and filters only those matching the expected output key
     def fetch_and_filter_utxos(address, expected_output_key)
-      utxos = fetch_utxos(address)
+      utxos = fetch_utxos(address, @client)
       return [] if utxos.empty?
 
       utxos.each_with_object([]) do |utxo, result|
         result << utxo if valid_output_key?(utxo, expected_output_key)
       end
-    end
-
-    # Fetches all UTXOs for the given address using mempool API
-    def fetch_utxos(address)
-      @client.get("/signet/api/address/#{address}/utxo").body
     end
 
     # Gets the current fastest fee rate from mempool API, with fallback to minimum fee
