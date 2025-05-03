@@ -20,9 +20,13 @@ class Script
     @client = Services::HttpClient.new.client
   end
 
-  def self.call
-    new.run
+  def call
+    run
+  rescue StandardError => e
+    log_error("Something went wrong. Trace: #{e.message}")
   end
+
+  private
 
   # rubocop:disable Metrics/MethodLength
   # Main loop for running the wallet operations menu
@@ -43,13 +47,9 @@ class Script
       else
         log_info('Invalid choice. Please try again.')
       end
-    rescue StandardError => e
-      log_error("Something went wrong. Trace: #{e.message}")
     end
   end
   # rubocop:enable Metrics/MethodLength
-
-  private
 
   def print_menu
     puts "\nBitcoin Wallet"
@@ -61,4 +61,4 @@ class Script
   end
 end
 
-Script.call
+Script.new.call
