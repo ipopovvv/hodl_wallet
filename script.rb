@@ -35,9 +35,9 @@ class Script
         Wallet.generate
         return
       when '2'
-        BalanceChecker.check_balance(@client)
+        BalanceChecker::Checker.check_balance(@client)
       when '3'
-        TransactionSender.send_btc
+        TransactionSender::Sender.new(@client).send_btc
       when '4'
         break
       else

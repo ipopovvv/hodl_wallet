@@ -5,22 +5,14 @@ require_relative 'script_logger'
 
 # module BalanceChecker
 module BalanceChecker
-  def initialize(client)
-    @client = client
-  end
-
-  def self.check_balance(client)
-    new(client).balance
-  end
-
-  def self.new(client)
-    address = Wallet.load.to_p2tr
-    Checker.new(address, client)
-  end
-
-  # class Checker for checking balance
+  # class Checker
   class Checker
     include ScriptLogger
+
+    def self.check_balance(client)
+      address = Wallet.load.to_p2tr
+      new(address, client).balance
+    end
 
     def initialize(address, client)
       @address = address
@@ -40,7 +32,7 @@ module BalanceChecker
     private
 
     def fetch_utxos
-      log_info("Fetching utxos for #{@address}...}")
+      log_info("Fetching utxos for #{@address}...")
       @client.get("/signet/api/address/#{@address}/utxo").body
     end
 

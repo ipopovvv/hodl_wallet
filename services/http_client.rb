@@ -3,6 +3,7 @@
 require_relative '../lib/script_logger'
 
 module Services
+  # class HttpClient
   class HttpClient
     extend Dry::Configurable
     include ScriptLogger
@@ -15,12 +16,9 @@ module Services
     setting :timeout, default: 5
     setting :headers, default: { 'Content-Type' => 'application/json' }
 
+    # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
     def self.client
-      Faraday.new(
-        url: config.base_url,
-        headers: config.headers,
-        request: { timeout: config.timeout }
-      ) do |conn|
+      Faraday.new(url: config.base_url, headers: config.headers, request: { timeout: config.timeout }) do |conn|
         conn.request :json
         conn.response :json
         conn.adapter Faraday.default_adapter
@@ -38,5 +36,6 @@ module Services
       log_error("Unexpected error: #{e.class} - #{e.message}")
       raise ConnectionError, 'Unexpected error occurred'
     end
+    # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
   end
 end
