@@ -13,7 +13,6 @@ module Wallet
     # Generates a new Bitcoin key, saves it, updates .env, and returns the Taproot address
     def call
       Bitcoin.chain_params = :signet
-
       @key = Bitcoin::Key.generate
       @key_wif = @key.to_wif
 
@@ -21,9 +20,7 @@ module Wallet
       update_env_file_with_key
 
       address = @key.to_p2tr
-
       log_generation_result(address)
-
       address
     rescue StandardError => e
       log_error "Something went wrong while generating the Wallet: #{e.message}"

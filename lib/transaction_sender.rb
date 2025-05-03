@@ -5,7 +5,7 @@ require_relative '../utils/utxo_fetcher'
 
 # Main Module for prepare and send BTC Transaction
 module TransactionSender
-  MINIMUM_FEE = 2
+  MINIMUM_FEE_RATE = 2
   DUST_THRESHOLD = 330
 
   class TransactionSenderError < StandardError; end
@@ -28,38 +28,60 @@ module TransactionSender
       recipient_address = ask_recipient_address
       amount_sats = btc_to_sats(ask_amount_btc)
       key = Wallet::Loader.new.key
-
       sender_address, output_key_bytes = derive_p2tr_details(key)
       log_info("Sender P2TR Address: #{sender_address}")
+      confirmed_utxos = load_confirmed_spendable_utxos(sender_address, output_key_bytes)
+      return unless confirmed_utxos
 
-      spendable_utxos = fetch_and_filter_utxos(sender_address, output_key_bytes)
-      confirmed_utxos = spendable_utxos.select { |utxo| utxo.dig('status', 'confirmed') }
-
-      if confirmed_utxos.empty?
-        log_info("No confirmed spendable UTXOs found for address #{sender_address}.")
-        return
-      end
-      log_info("Using #{confirmed_utxos.size} confirmed and spendable UTXO(s).")
-
-      total_sats = total_balance(confirmed_utxos)
-      log_info("Total spendable balance: #{total_sats} sats")
-
+      total_sats = log_total_balance(confirmed_utxos)
       fee_rate = fetch_fee_rate
-      final_fee = calculate_final_fee(confirmed_utxos, sender_address, recipient_address, amount_sats, fee_rate)
-      log_info("Estimated final fee: #{final_fee} sats")
+      final_fee = estimate_final_fee(confirmed_utxos, sender_address, recipient_address, amount_sats, fee_rate)
+      return unless sufficient_funds?(total_sats, amount_sats, final_fee)
 
-      unless sufficient_funds?(total_sats, amount_sats, final_fee)
-        log_info("Insufficient funds. Required: #{amount_sats} + Fee: #{final_fee}. Available: #{total_sats}")
-        return
-      end
-
-      final_tx = build_transaction(confirmed_utxos, sender_address, recipient_address, amount_sats, final_fee)
-      signed_tx = sign_transaction(final_tx, confirmed_utxos, key, output_key_bytes)
+      tx = build_transaction(confirmed_utxos, sender_address, recipient_address, amount_sats, final_fee)
+      signed_tx = sign_transaction(tx, confirmed_utxos, key, output_key_bytes)
       broadcast(signed_tx)
     end
     # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
     private
+
+    # Fetch and filter UTXOs for the given sender, then return only confirmed ones
+    def load_confirmed_spendable_utxos(sender_address, output_key_bytes)
+      utxos = fetch_and_filter_utxos(sender_address, output_key_bytes)
+      confirmed = utxos.select { |utxo| utxo.dig('status', 'confirmed') }
+
+      if confirmed.empty?
+        log_info("No confirmed spendable UTXOs found for address #{sender_address}.")
+        return nil
+      end
+
+      log_info("Using #{confirmed.size} confirmed and spendable UTXO(s).")
+      confirmed
+    end
+
+    # Log and return the total balance from confirmed UTXOs
+    def log_total_balance(utxos)
+      total = total_balance(utxos)
+      log_info("Total spendable balance: #{total} sats")
+      total
+    end
+
+    # Estimate final transaction fee and log it
+    def estimate_final_fee(utxos, sender, recipient, amount, fee_rate)
+      fee = calculate_final_fee(utxos, sender, recipient, amount, fee_rate)
+      log_info("Estimated final fee: #{fee} sats")
+      fee
+    end
+
+    # Check if the wallet has enough funds, and log message if not
+    def sufficient_funds?(total, amount, fee)
+      if total < amount + fee
+        log_info("Insufficient funds. Required: #{amount} + Fee: #{fee}. Available: #{total}")
+        return false
+      end
+      true
+    end
 
     # Derives Taproot (P2TR) address and output key bytes from the given key
     def derive_p2tr_details(key)
@@ -86,8 +108,8 @@ module TransactionSender
     # Gets the current fastest fee rate from mempool API, with fallback to minimum fee
     def fetch_fee_rate
       response = @client.get('/signet/api/v1/fees/recommended')
-      rate = response.body['fastestFee'] || MINIMUM_FEE
-      [rate, MINIMUM_FEE].max
+      rate = response.body['fastestFee'] || MINIMUM_FEE_RATE
+      [rate, MINIMUM_FEE_RATE].max
     end
 
     # Estimates final transaction fee with and without change output to get accurate size-based fee
@@ -135,53 +157,76 @@ module TransactionSender
     end
     # rubocop:enable Naming/MethodParameterName
 
-    # rubocop:disable Metrics, Naming
+    # rubocop:disable Naming
     # Signs a Bitcoin transaction using provided UTXOs and key, ensuring output key match and valid data
     def sign_transaction(tx, spendable_utxos, key, expected_output_key)
       raise TransactionSenderError, 'Input/UTXO count mismatch.' unless tx.in.size == spendable_utxos.size
 
-      prevouts = spendable_utxos.map do |u|
+      prevouts = prepare_prevouts(spendable_utxos)
+      spendable_utxos.each_with_index do |utxo, index|
+        validate_utxo_data(utxo, index, expected_output_key)
+        script_pubkey = Bitcoin::Script.parse_from_payload(utxo['scriptpubkey_hex'].htb)
+        sighash = generate_sighash(tx, index, script_pubkey, utxo, prevouts)
+        signature = key.sign(sighash, algo: :schnorr)
+        add_signature_to_input(tx, index, signature)
+      end
+      tx
+    end
+    # rubocop:enable Naming
+
+    # Prepare the prevouts (previous outputs) for the sighash computation
+    def prepare_prevouts(spendable_utxos)
+      spendable_utxos.map do |u|
         Bitcoin::TxOut.new(
           value: u['value'],
           script_pubkey: Bitcoin::Script.parse_from_payload(u['scriptpubkey_hex'].htb)
         )
       end
-
-      spendable_utxos.each_with_index do |utxo, index|
-        output_key_script = utxo['output_key_from_script']
-        unless utxo['scriptpubkey_hex'] && utxo['value'] && output_key_script
-          raise TransactionSenderError,
-                "Missing data for UTXO index #{index}."
-        end
-        unless output_key_script == expected_output_key
-          raise TransactionSenderError,
-                "Output Key mismatch on input ##{index}!"
-        end
-
-        script_pubkey = Bitcoin::Script.parse_from_payload(utxo['scriptpubkey_hex'].htb)
-        sighash = tx.sighash_for_input(
-          index,
-          script_pubkey,
-          amount: utxo['value'],
-          sig_version: :taproot,
-          prevouts: prevouts, hash_type: Bitcoin::SIGHASH_TYPE[:default]
-        )
-        signature = key.sign(sighash, algo: :schnorr)
-
-        tx.in[index].script_witness = Bitcoin::ScriptWitness.new
-        tx.in[index].script_witness.stack << signature
-      end
-      tx
     end
-    # rubocop:enable Metrics, Naming
+
+    # Validate UTXO data and ensure consistency with expected output key
+    def validate_utxo_data(utxo, index, expected_output_key)
+      raise TransactionSenderError, "Missing data for UTXO index #{index}." unless valid_utxo?(utxo)
+
+      output_key_script = utxo['output_key_from_script']
+      return if output_key_script == expected_output_key
+
+      raise TransactionSenderError, "Output Key mismatch on input ##{index}!"
+    end
+
+    # Check if the UTXO contains all required data
+    def valid_utxo?(utxo)
+      utxo['scriptpubkey_hex'] && utxo['value'] && utxo['output_key_from_script']
+    end
+
+    # rubocop:disable Naming/MethodParameterName
+    # Generate the sighash for the current UTXO index
+    def generate_sighash(tx, index, script_pubkey, utxo, prevouts)
+      tx.sighash_for_input(
+        index,
+        script_pubkey,
+        amount: utxo['value'],
+        sig_version: :taproot,
+        prevouts: prevouts,
+        hash_type: Bitcoin::SIGHASH_TYPE[:default]
+      )
+    end
+    # rubocop:enable Naming/MethodParameterName
+
+    # rubocop:disable Naming/MethodParameterName
+    # Add the generated signature to the transaction input
+    def add_signature_to_input(tx, index, signature)
+      tx.in[index].script_witness = Bitcoin::ScriptWitness.new
+      tx.in[index].script_witness.stack << signature
+    end
+    # rubocop:enable Naming/MethodParameterName
 
     # rubocop:disable Naming
     def broadcast(tx)
-      tx_hex = tx.to_hex
       log_info('Broadcasting transaction...')
       response = @client.post('/signet/api/tx') do |req|
         req.headers['Content-Type'] = 'text/plain'
-        req.body = tx_hex
+        req.body = tx.to_hex
       end
 
       log_info("Transaction broadcast successful! TXID: #{response.body}")
@@ -213,10 +258,6 @@ module TransactionSender
 
     def total_balance(utxos)
       utxos.sum { |u| u['value'] }
-    end
-
-    def sufficient_funds?(total, amount, fee)
-      total >= amount + fee
     end
 
     def ask_recipient_address
