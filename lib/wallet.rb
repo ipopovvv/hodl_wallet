@@ -29,7 +29,7 @@ module Wallet
     private
 
     def save_private_key_to_file
-      Dir.mkdir(KEYS_DIR) unless Dir.exist?(KEYS_DIR)
+      FileUtils.mkdir_p(KEYS_DIR)
       file_name = ENV['KEY_FILE_NAME'] || 'private_key'
       File.write(File.join(KEYS_DIR, file_name), @key_wif)
     end
@@ -62,7 +62,7 @@ module Wallet
     def initialize
       Bitcoin.chain_params = :signet
 
-      wif = ENV['PRIVATE_KEY_WIF']
+      wif = ENV.fetch('PRIVATE_KEY_WIF', nil)
       unless wif && !wif.strip.empty?
         log_info('Environment variable PRIVATE_KEY_WIF is missing. Please check set it in your .env file MANUALLY.')
         return

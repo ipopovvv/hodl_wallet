@@ -95,6 +95,9 @@ GEM
     rubocop-ast (1.44.1)
       parser (>= 3.3.7.2)
       prism (~> 1.4)
+    rubocop-rspec (3.6.0)
+      lint_roller (~> 1.1)
+      rubocop (~> 1.72, >= 1.72.1)
     ruby-progressbar (1.13.0)
     secp256k1rb (0.1.1)
       ffi (>= 1.16.3)
@@ -125,6 +128,7 @@ DEPENDENCIES
   faraday (= 2.13.1)
   rspec (= 3.13)
   rubocop (= 1.75.4)
+  rubocop-rspec (= 3.6)
   simplecov (= 0.22.0)
   vcr (= 6.3.1)
 

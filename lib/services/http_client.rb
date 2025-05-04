@@ -13,7 +13,7 @@ module Services
     class TimeoutError < StandardError; end
     class ParsingError < StandardError; end
 
-    setting :base_url, default: ENV['MEMPOOL_API_URL']
+    setting :base_url, default: ENV.fetch('MEMPOOL_API_URL', nil)
     setting :timeout, default: 5
     setting :headers, default: { 'Content-Type' => 'application/json' }
 
