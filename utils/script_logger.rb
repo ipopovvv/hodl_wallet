@@ -2,13 +2,17 @@
 
 # Main Module for logging different types of logs
 module ScriptLogger
-  LOGGER = Logger.new($stdout)
-
   def log_info(message)
-    LOGGER.info(message)
+    logger.info(message)
   end
 
   def log_error(message)
-    LOGGER.error(message)
+    logger.error(message)
+  end
+
+  private
+
+  def logger
+    @logger ||= Logger.new($stdout)
   end
 end
