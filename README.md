@@ -80,7 +80,6 @@ docker run -it --rm hodl_wallet
 
 ## 🚧 Roadmap / Future Plans
 
-1. Add RSpec tests and achieve **100% coverage**
-2. Integrate `VCR` to mock external API requests
-3. Add support for testnet/mainnet switching
-4. Add support for legacy (P2PKH) and SegWit (P2WPKH) address generation, allowing users to choose the desired address format based on compatibility and transaction fee optimization.
+1. Achieve **100% coverage** (RSpec, VCR, simplecov)
+2. Add support for testnet/mainnet switching
+3. Add support for legacy (P2PKH) and SegWit (P2WPKH) address generation, allowing users to choose the desired address format based on compatibility and transaction fee optimization.
