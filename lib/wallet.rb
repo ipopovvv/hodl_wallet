@@ -70,7 +70,7 @@ module Wallet
 
       @key = Bitcoin::Key.from_wif(wif)
     rescue StandardError => e
-      log_error "Invalid WIF format: #{e.message}"
+      log_error("Invalid WIF format: #{e.message}")
       raise
     end
   end
