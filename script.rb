@@ -5,18 +5,28 @@ require 'faraday'
 require 'json'
 require 'bitcoin'
 require 'rubocop'
+require 'dry/configurable'
+require_relative 'lib/services/http_client'
 require_relative 'lib/wallet'
 require_relative 'lib/balance_checker'
 require_relative 'lib/transaction_sender'
-require_relative 'lib/script_logger'
+require_relative 'utils/script_logger'
 
 # Main class for Script
 class Script
   include ScriptLogger
 
-  def self.call
-    new.run
+  def initialize
+    @client = Services::HttpClient.new.client
   end
+
+  def call
+    run
+  rescue StandardError => e
+    log_error("Something went wrong. Trace: #{e.message}")
+  end
+
+  private
 
   # rubocop:disable Metrics/MethodLength
   # Main loop for running the wallet operations menu
@@ -26,24 +36,20 @@ class Script
       print_menu
       case gets.chomp
       when '1'
-        Wallet.generate
+        Wallet::Generator.new.call
         return
       when '2'
-        BalanceChecker.check_balance
+        BalanceChecker::Checker.new(@client).balance
       when '3'
-        TransactionSender.send_btc
+        TransactionSender::Sender.new(@client).send_btc
       when '4'
         break
       else
         log_info('Invalid choice. Please try again.')
       end
-    rescue StandardError => e
-      log_error("Something went wrong. Trace: #{e.message}")
     end
   end
   # rubocop:enable Metrics/MethodLength
-
-  private
 
   def print_menu
     puts "\nBitcoin Wallet"
@@ -55,4 +61,4 @@ class Script
   end
 end
 
-Script.call
+Script.new.call

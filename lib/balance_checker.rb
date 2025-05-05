@@ -1,29 +1,23 @@
 # frozen_string_literal: true
 
 require_relative 'wallet'
-require_relative 'script_logger'
+require_relative '../utils/script_logger'
+require_relative '../utils/utxo_fetcher'
 
 # module BalanceChecker
 module BalanceChecker
-  def self.check_balance
-    new.balance
-  end
-
-  def self.new
-    address = Wallet.load.to_p2tr
-    Checker.new(address)
-  end
-
-  # class Checker for checking balance
+  # class Checker
   class Checker
     include ScriptLogger
+    include UtxoFetcher
 
-    def initialize(address)
-      @address = address
+    def initialize(client)
+      @address = load_wallet
+      @client = client
     end
 
     def balance
-      utxos = fetch_utxos
+      utxos = fetch_utxos(@address, @client)
 
       if utxos.empty?
         log_info('Balance: 0 sBTC')
@@ -34,18 +28,8 @@ module BalanceChecker
 
     private
 
-    def fetch_utxos
-      response = Faraday.get("#{ENV['MEMPOOL_API_URL']}/address/#{@address}/utxo")
-
-      if response.success?
-        JSON.parse(response.body)
-      else
-        log_info("Error fetching UTXOs: #{response.status} #{response.body}")
-        []
-      end
-    rescue StandardError => e
-      log_error("Error fetching UTXOs: #{e.message}")
-      []
+    def load_wallet
+      Wallet::Loader.new.key.to_p2tr
     end
 
     def calculate_balance(utxos)
