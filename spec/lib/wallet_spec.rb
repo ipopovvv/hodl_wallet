@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-require 'bitcoin'
 require_relative '../spec_helper'
-require_relative '../../lib/wallet'
 
 RSpec.describe Wallet do
   describe Wallet::Loader do
