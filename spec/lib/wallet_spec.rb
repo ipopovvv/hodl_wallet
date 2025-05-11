@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../spec_helper'
-
 RSpec.describe Wallet do
   describe Wallet::Loader do
     let(:loader) { described_class.new }

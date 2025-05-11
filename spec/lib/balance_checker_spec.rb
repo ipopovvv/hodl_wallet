@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../spec_helper'
-
 RSpec.describe BalanceChecker do
   describe BalanceChecker::Checker do
     let(:client) { instance_double('Client') } # rubocop:disable RSpec/VerifiedDoubleReference
