@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require 'bitcoin'
-require_relative '../spec_helper'
-require_relative '../../lib/wallet'
-
 RSpec.describe Wallet do
   describe Wallet::Loader do
     let(:loader) { described_class.new }
@@ -16,6 +12,30 @@ RSpec.describe Wallet do
 
       it 'returns valid address' do
         expect(loader.key.to_p2tr).to eq('tb1pff08xc4vd6ctn764zjudz4aajxc2xcj8y7u6qy0dzkytxt73f0zqxxv3xk')
+      end
+    end
+  end
+
+  describe Wallet::Generator do
+    let(:generator) { described_class.new }
+    let(:key) { instance_double(Bitcoin::Key) }
+    let(:key_wif) { 'key_wif' }
+    let(:project_root) { File.expand_path('../..', __dir__) }
+    let(:env_path) { File.join(project_root, '.env') }
+
+    before do
+      allow(Bitcoin::Key).to receive(:generate).and_return(key)
+      allow(key).to receive_messages(to_wif: key_wif, to_p2tr: 'key_p2tr_bar')
+      allow(File).to receive(:write).with('keys/private_key', key_wif).and_return(true)
+      allow(File).to receive(:exist?).with('<STDOUT>').and_return(true)
+      allow(File).to receive(:exist?).with(env_path).and_return(true)
+      allow(File).to receive(:readlines).with(env_path).and_return([])
+      allow(File).to receive(:write).with(env_path, '')
+    end
+
+    context 'when generating a new wallet' do
+      it 'does not raise an error' do
+        expect { generator.call }.not_to raise_error
       end
     end
   end

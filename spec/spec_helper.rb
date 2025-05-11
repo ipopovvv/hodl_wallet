@@ -1,6 +1,14 @@
 # frozen_string_literal: true
 
 require 'simplecov'
+
+SimpleCov.start do
+  enable_coverage :branch
+  add_filter '/spec/'
+  track_files 'lib/**/*.rb'
+  minimum_coverage line: 100, branch: 100
+end
+
 require 'rspec'
 require 'fileutils'
 require 'tmpdir'
@@ -16,16 +24,9 @@ require_relative '../lib/balance_checker'
 require_relative '../lib/transaction_sender'
 require_relative '../utils/script_logger'
 
-SimpleCov.start do
-  enable_coverage :branch
-
-  minimum_coverage line: 100, branch: 100
-
-  add_group 'Wallet', 'lib'
-  add_group 'Utilities', 'utils'
-end
-
 RSpec.configure do |config|
+  config.order = :random
+
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
   end
